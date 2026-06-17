@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buyers List Generator — PCC Analyst Tools</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    .tool-container { max-width: 960px; }
+
+    /* API key banner */
+    .api-banner {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .api-banner label { color: #94a3b8; font-size: 0.85rem; white-space: nowrap; }
+    .api-banner input {
+      flex: 1;
+      min-width: 260px;
+      padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      font-family: monospace;
+    }
+    .api-banner input:focus { outline: none; border-color: #005373; }
+    .api-save-btn {
+      padding: 8px 16px;
+      background: #005373;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .api-save-btn:hover { background: #003f57; }
+    .api-status { font-size: 0.8rem; color: #4ade80; }
+
+    /* Input form */
+    .form-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 28px;
+      margin-bottom: 28px;
+    }
+    .form-card h3 { font-size: 1rem; margin-bottom: 20px; color: #94a3b8; font-weight: 500; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid .full-width { grid-column: span 2; }
+    .field label { display: block; font-size: 0.82rem; color: #94a3b8; margin-bottom: 6px; }
+    .field input, .field textarea, .field select {
+      width: 100%;
+      padding: 9px 13px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 7px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus {
+      outline: none;
+      border-color: #005373;
+    }
+    .field textarea { resize: vertical; min-height: 80px; }
+
+    .generate-btn {
+      margin-top: 20px;
+      padding: 12px 32px;
+      background: #005373;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .generate-btn:hover { background: #003f57; }
+    .generate-btn:disabled { background: #334155; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    .results-section { display: none; }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .results-header h3 { font-size: 1.1rem; }
+
+    .export-btn {
+      padding: 8px 20px;
+      background: transparent;
+      border: 1px solid #005373;
+      color: #e2e8f0;
+      border-radius: 7px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .export-btn:hover { background: #005373; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 0; }
+    .tab-btn {
+      padding: 10px 24px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active { background: #0f172a; color: #e2e8f0; border-color: #005373; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Table */
+    .table-wrap {
+      background: #0f172a;
+      border: 1px solid #005373;
+      border-radius: 0 8px 8px 8px;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      color: #94a3b8;
+      font-weight: 500;
+      border-bottom: 1px solid #334155;
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1e293b;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1e293b; }
+    td a { color: #a6a6a6; text-decoration: none; }
+    td a:hover { color: #e2e8f0; text-decoration: underline; }
+    td .rationale { color: #94a3b8; font-size: 0.83rem; }
+
+    .error-box {
+      background: #1e293b;
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 16px 20px;
+      color: #f87171;
+      font-size: 0.9rem;
+      margin-top: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <span class="logo"><a href="../dashboard.html" style="color:inherit;text-decoration:none;">← PCC Analyst Tools</a></span>
+    <button class="logout-btn" id="logout-btn">Sign out</button>
+  </header>
+
+  <main>
+    <div class="tool-container">
+      <h2 style="margin-bottom:8px;">Buyers List Generator</h2>
+      <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:28px;">Enter details about the target company to generate a list of potential strategic and financial buyers.</p>
+
+      <!-- API Key -->
+      <div class="api-banner">
+        <label for="api-key-input">Anthropic API Key</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+        <button class="api-save-btn" id="api-save-btn">Save</button>
+        <span class="api-status" id="api-status"></span>
+      </div>
+
+      <!-- Input Form -->
+      <div class="form-card">
+        <h3>Company Details</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label>Company Website</label>
+            <input type="url" id="f-website" placeholder="https://example.com" />
+          </div>
+          <div class="field">
+            <label>Industry / Sector</label>
+            <input type="text" id="f-industry" placeholder="e.g. Industrial Distribution" />
+          </div>
+          <div class="field">
+            <label>Headquarters / Geography</label>
+            <input type="text" id="f-geo" placeholder="e.g. Midwest, USA" />
+          </div>
+          <div class="field">
+            <label>Revenue Range</label>
+            <input type="text" id="f-revenue" placeholder="e.g. $20M–$30M" />
+          </div>
+          <div class="field">
+            <label>EBITDA Margin <span style="color:#64748b">(optional)</span></label>
+            <input type="text" id="f-ebitda" placeholder="e.g. 12%" />
+          </div>
+          <div class="field">
+            <label>Key Products / Services</label>
+            <input type="text" id="f-products" placeholder="e.g. MRO supplies, safety equipment" />
+          </div>
+          <div class="field full-width">
+            <label>Brief Business Description</label>
+            <textarea id="f-description" placeholder="Describe what the company does, its customer base, competitive advantages, etc."></textarea>
+          </div>
+        </div>
+        <button class="generate-btn" id="generate-btn">
+          <div class="spinner" id="spinner"></div>
+          <span id="btn-label">Generate Buyers List</span>
+        </button>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+
+      <!-- Results -->
+      <div class="results-section" id="results-section">
+        <div class="results-header">
+          <h3>Results</h3>
+          <button class="export-btn" id="export-btn">⬇ Export to Excel</button>
+        </div>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="strategic">Strategic Buyers (<span id="strat-count">0</span>)</button>
+          <button class="tab-btn" data-tab="financial">Financial Buyers (<span id="fin-count">0</span>)</button>
+        </div>
+        <div class="tab-panel active" id="tab-strategic">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Buyer Name</th>
+                  <th>Website</th>
+                  <th>HQ Location</th>
+                  <th>Est. Revenue / Size</th>
+                  <th>Rationale / Fit</th>
+                </tr>
+              </thead>
+              <tbody id="strat-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-financial">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Buyer Name</th>
+                  <th>Website</th>
+                  <th>HQ Location</th>
+                  <th>Est. Revenue / Size</th>
+                  <th>Rationale / Fit</th>
+                </tr>
+              </thead>
+              <tbody id="fin-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuF2XsNTUVnaTDb4d6ECvh9p-uUFYvOn8",
+      authDomain: "tools-site-e600e.firebaseapp.com",
+      projectId: "tools-site-e600e",
+      storageBucket: "tools-site-e600e.firebasestorage.app",
+      messagingSenderId: "915811706580",
+      appId: "1:915811706580:web:803e5753bab3abb6343d41",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) window.location.href = "../index.html";
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      signOut(auth).then(() => { window.location.href = "../index.html"; });
+    });
+  </script>
+
+  <script>
+    // --- API Key ---
+    const apiKeyInput = document.getElementById("api-key-input");
+    const apiStatus = document.getElementById("api-status");
+
+    const savedKey = localStorage.getItem("pcc_anthropic_key");
+    if (savedKey) {
+      apiKeyInput.value = savedKey;
+      apiStatus.textContent = "✓ Key saved";
+    }
+
+    document.getElementById("api-save-btn").addEventListener("click", () => {
+      const key = apiKeyInput.value.trim();
+      if (!key) return;
+      localStorage.setItem("pcc_anthropic_key", key);
+      apiStatus.textContent = "✓ Key saved";
+    });
+
+    // --- Tabs ---
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // --- Generate ---
+    let lastData = null;
+
+    document.getElementById("generate-btn").addEventListener("click", async () => {
+      const key = localStorage.getItem("pcc_anthropic_key") || apiKeyInput.value.trim();
+      if (!key) {
+        showError("Please enter and save your Anthropic API key first.");
+        return;
+      }
+
+      const website    = document.getElementById("f-website").value.trim();
+      const industry   = document.getElementById("f-industry").value.trim();
+      const geo        = document.getElementById("f-geo").value.trim();
+      const revenue    = document.getElementById("f-revenue").value.trim();
+      const ebitda     = document.getElementById("f-ebitda").value.trim();
+      const products   = document.getElementById("f-products").value.trim();
+      const description = document.getElementById("f-description").value.trim();
+
+      if (!industry || !description) {
+        showError("Please fill in at least Industry and Business Description.");
+        return;
+      }
+
+      setLoading(true);
+      hideError();
+
+      const prompt = `You are an experienced M&A investment banker. Given the following target company details, generate a list of 20 strategic buyers and 20 financial buyers for an M&A sale process.
+
+TARGET COMPANY DETAILS:
+- Website: ${website || "Not provided"}
+- Industry: ${industry}
+- Headquarters: ${geo || "Not provided"}
+- Revenue: ${revenue || "Not provided"}
+- EBITDA Margin: ${ebitda || "Not provided"}
+- Key Products/Services: ${products || "Not provided"}
+- Description: ${description}
+
+INSTRUCTIONS:
+- Strategic buyers: companies that could acquire this business for operational/strategic reasons (competitors, adjacent industry players, customers, suppliers, companies looking to expand capabilities or geography).
+- Financial buyers: private equity firms, family offices, or other financial sponsors that invest in companies of this size and sector.
+- For each buyer provide: company name, website URL, headquarters location, estimated revenue or AUM/fund size, and a 1-2 sentence rationale for why they are a good fit.
+- Be specific and realistic — name real companies and firms that would plausibly pursue this type of acquisition.
+
+Return ONLY valid JSON in exactly this format, no other text:
+{
+  "strategic": [
+    { "name": "", "website": "", "hq": "", "size": "", "rationale": "" }
+  ],
+  "financial": [
+    { "name": "", "website": "", "hq": "", "size": "", "rationale": "" }
+  ]
+}`;
+
+      try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model: "claude-opus-4-8",
+            max_tokens: 4096,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error?.message || `API error ${response.status}`);
+        }
+
+        const data = await response.json();
+        const text = data.content[0].text.trim();
+
+        // Extract JSON even if Claude adds any surrounding text
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Could not parse response from Claude.");
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        lastData = parsed;
+        renderResults(parsed);
+      } catch (err) {
+        showError("Error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    function renderResults(data) {
+      renderTable("strat-tbody", data.strategic || []);
+      renderTable("fin-tbody", data.financial || []);
+      document.getElementById("strat-count").textContent = (data.strategic || []).length;
+      document.getElementById("fin-count").textContent = (data.financial || []).length;
+      document.getElementById("results-section").style.display = "block";
+      document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function renderTable(tbodyId, buyers) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = "";
+      buyers.forEach((b, i) => {
+        const tr = document.createElement("tr");
+        const websiteCell = b.website
+          ? `<a href="${b.website}" target="_blank" rel="noopener">${b.website.replace(/^https?:\/\//, "")}</a>`
+          : "—";
+        tr.innerHTML = `
+          <td style="color:#64748b">${i + 1}</td>
+          <td><strong>${b.name || "—"}</strong></td>
+          <td>${websiteCell}</td>
+          <td>${b.hq || "—"}</td>
+          <td>${b.size || "—"}</td>
+          <td><span class="rationale">${b.rationale || "—"}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- Export ---
+    document.getElementById("export-btn").addEventListener("click", () => {
+      if (!lastData) return;
+
+      const toRows = (buyers) => buyers.map((b, i) => ({
+        "#": i + 1,
+        "Buyer Name": b.name || "",
+        "Website": b.website || "",
+        "HQ Location": b.hq || "",
+        "Est. Revenue / Size": b.size || "",
+        "Rationale / Fit": b.rationale || "",
+      }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(toRows(lastData.strategic || [])), "Strategic Buyers");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(toRows(lastData.financial || [])), "Financial Buyers");
+      XLSX.writeFile(wb, "PCC_Buyers_List.xlsx");
+    });
+
+    function setLoading(on) {
+      const btn = document.getElementById("generate-btn");
+      document.getElementById("spinner").style.display = on ? "block" : "none";
+      document.getElementById("btn-label").textContent = on ? "Generating..." : "Generate Buyers List";
+      btn.disabled = on;
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("error-box");
+      box.textContent = msg;
+      box.style.display = "block";
+    }
+
+    function hideError() {
+      document.getElementById("error-box").style.display = "none";
+    }
+  </script>
+</body>
+</html>
