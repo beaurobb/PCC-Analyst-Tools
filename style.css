@@ -1,0 +1,179 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+/* Login page */
+.login-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-box {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-box h1 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.login-box p {
+  color: #94a3b8;
+  margin-bottom: 28px;
+  font-size: 0.9rem;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 14px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus { border-color: #6366f1; }
+
+.btn {
+  width: 100%;
+  padding: 11px;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.btn:hover { background: #4f46e5; }
+
+.error-msg {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin-top: 12px;
+  display: none;
+}
+
+/* Dashboard / tool pages */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.site-header .logo { font-weight: 700; font-size: 1.1rem; }
+
+.logout-btn {
+  background: none;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.logout-btn:hover { border-color: #6366f1; color: #e2e8f0; }
+
+main { padding: 40px 32px; max-width: 1100px; margin: 0 auto; }
+
+main h2 { font-size: 1.4rem; margin-bottom: 24px; }
+
+/* Tool grid */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.tool-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, transform 0.15s;
+  display: block;
+}
+
+.tool-card:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.tool-card .icon { font-size: 2rem; margin-bottom: 12px; }
+.tool-card h3 { font-size: 1rem; margin-bottom: 6px; }
+.tool-card p { font-size: 0.82rem; color: #94a3b8; line-height: 1.5; }
+
+/* Individual tool page */
+.tool-page { max-width: 700px; }
+.tool-page h2 { margin-bottom: 24px; }
+
+.calc-display {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 2rem;
+  text-align: right;
+  margin-bottom: 16px;
+  min-height: 64px;
+  word-break: break-all;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.calc-btn {
+  padding: 18px;
+  font-size: 1.1rem;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.calc-btn:hover { background: #334155; }
+.calc-btn.op { color: #818cf8; }
+.calc-btn.equals { background: #6366f1; border-color: #6366f1; }
+.calc-btn.equals:hover { background: #4f46e5; }
+.calc-btn.clear { color: #f87171; }
