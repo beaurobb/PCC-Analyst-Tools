@@ -202,8 +202,8 @@
 
       <!-- API Key -->
       <div class="api-banner">
-        <label for="api-key-input">Anthropic API Key</label>
-        <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+        <label for="api-key-input">Google Gemini API Key</label>
+        <input type="password" id="api-key-input" placeholder="AIza..." />
         <button class="api-save-btn" id="api-save-btn">Save</button>
         <span class="api-status" id="api-status"></span>
       </div>
@@ -327,7 +327,7 @@
     const apiKeyInput = document.getElementById("api-key-input");
     const apiStatus = document.getElementById("api-status");
 
-    const savedKey = localStorage.getItem("pcc_anthropic_key");
+    const savedKey = localStorage.getItem("pcc_gemini_key");
     if (savedKey) {
       apiKeyInput.value = savedKey;
       apiStatus.textContent = "✓ Key saved";
@@ -336,7 +336,7 @@
     document.getElementById("api-save-btn").addEventListener("click", () => {
       const key = apiKeyInput.value.trim();
       if (!key) return;
-      localStorage.setItem("pcc_anthropic_key", key);
+      localStorage.setItem("pcc_gemini_key", key);
       apiStatus.textContent = "✓ Key saved";
     });
 
@@ -354,7 +354,7 @@
     let lastData = null;
 
     document.getElementById("generate-btn").addEventListener("click", async () => {
-      const key = localStorage.getItem("pcc_anthropic_key") || apiKeyInput.value.trim();
+      const key = localStorage.getItem("pcc_gemini_key") || apiKeyInput.value.trim();
       if (!key) {
         showError("Please enter and save your Anthropic API key first.");
         return;
@@ -404,20 +404,17 @@ Return ONLY valid JSON in exactly this format, no other text:
 }`;
 
       try {
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-            "anthropic-dangerous-direct-browser-access": "true",
-          },
-          body: JSON.stringify({
-            model: "claude-opus-4-8",
-            max_tokens: 4096,
-            messages: [{ role: "user", content: prompt }],
-          }),
-        });
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+            }),
+          }
+        );
 
         if (!response.ok) {
           const err = await response.json();
@@ -425,7 +422,7 @@ Return ONLY valid JSON in exactly this format, no other text:
         }
 
         const data = await response.json();
-        const text = data.content[0].text.trim();
+        const text = data.candidates[0].content.parts[0].text.trim();
 
         // Extract JSON even if Claude adds any surrounding text
         const jsonMatch = text.match(/\{[\s\S]*\}/);
