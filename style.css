@@ -59,12 +59,12 @@ input[type="password"] {
   transition: border-color 0.2s;
 }
 
-input:focus { border-color: #6366f1; }
+input:focus { border-color: #005373; }
 
 .btn {
   width: 100%;
   padding: 11px;
-  background: #6366f1;
+  background: #005373;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -74,7 +74,7 @@ input:focus { border-color: #6366f1; }
   transition: background 0.2s;
 }
 
-.btn:hover { background: #4f46e5; }
+.btn:hover { background: #003f57; }
 
 .error-msg {
   color: #f87171;
@@ -106,7 +106,7 @@ input:focus { border-color: #6366f1; }
   transition: border-color 0.2s, color 0.2s;
 }
 
-.logout-btn:hover { border-color: #6366f1; color: #e2e8f0; }
+.logout-btn:hover { border-color: #005373; color: #e2e8f0; }
 
 main { padding: 40px 32px; max-width: 1100px; margin: 0 auto; }
 
@@ -131,7 +131,7 @@ main h2 { font-size: 1.4rem; margin-bottom: 24px; }
 }
 
 .tool-card:hover {
-  border-color: #6366f1;
+  border-color: #005373;
   transform: translateY(-2px);
 }
 
@@ -173,7 +173,7 @@ main h2 { font-size: 1.4rem; margin-bottom: 24px; }
 }
 
 .calc-btn:hover { background: #334155; }
-.calc-btn.op { color: #818cf8; }
-.calc-btn.equals { background: #6366f1; border-color: #6366f1; }
-.calc-btn.equals:hover { background: #4f46e5; }
+.calc-btn.op { color: #a6a6a6; }
+.calc-btn.equals { background: #005373; border-color: #005373; }
+.calc-btn.equals:hover { background: #003f57; }
 .calc-btn.clear { color: #f87171; }
