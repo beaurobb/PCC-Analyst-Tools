@@ -15,7 +15,7 @@ export const auth = getAuth(app);
 export function requireAuth() {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
-      window.location.href = "/tools-site/index.html";
+      window.location.href = "/PCC-Analyst-Tools/index.html";
     }
   });
 }
@@ -26,7 +26,7 @@ export function setupLogout() {
   if (btn) {
     btn.addEventListener("click", () => {
       signOut(auth).then(() => {
-        window.location.href = "/tools-site/index.html";
+        window.location.href = "/PCC-Analyst-Tools/index.html";
       });
     });
   }
