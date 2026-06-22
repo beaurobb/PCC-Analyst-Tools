@@ -310,15 +310,23 @@
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = "../index.html"; return; }
 
-      // Fetch Gemini key from Firestore and store it for the generate handler
+      const btn = document.getElementById("generate-btn");
+      const label = document.getElementById("btn-label");
+      btn.disabled = true;
+      label.textContent = "Loading…";
+
       try {
         const snap = await getDoc(doc(db, "config", "keys"));
         if (snap.exists() && snap.data().gemini) {
           window.__geminiKey = snap.data().gemini;
+          btn.disabled = false;
+          label.textContent = "Generate Buyers List";
         } else {
+          label.textContent = "API key not configured";
           console.warn("Gemini key not found in Firestore config/keys");
         }
       } catch (e) {
+        label.textContent = "Failed to load key";
         console.error("Failed to load API key:", e);
       }
     });
