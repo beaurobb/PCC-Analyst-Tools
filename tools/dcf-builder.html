@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DCF Builder — PCC Analyst Tools</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    .tool-container { max-width: 1100px; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #334155;
+      border-radius: 12px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #1e293b;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .drop-zone.drag-over {
+      border-color: #005373;
+      background: #0f2233;
+    }
+    .drop-zone.has-file {
+      border-color: #22c55e;
+      background: #0d2318;
+      padding: 28px 32px;
+    }
+    .drop-zone .drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .drop-zone p { color: #94a3b8; font-size: 0.9rem; margin: 4px 0; }
+    .drop-zone .drop-title { font-size: 1rem; color: #e2e8f0; margin-bottom: 6px; }
+    .drop-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-info {
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+    }
+    .file-icon { font-size: 2rem; }
+    .file-meta { text-align: left; }
+    .file-meta .fname { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; }
+    .file-meta .fsize { font-size: 0.8rem; color: #64748b; }
+
+    .btn-row { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+
+    .build-btn {
+      padding: 12px 32px;
+      background: #005373;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .build-btn:hover { background: #003f57; }
+    .build-btn:disabled { background: #334155; cursor: not-allowed; }
+
+    .clear-btn {
+      padding: 12px 20px;
+      background: transparent;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .clear-btn:hover { border-color: #475569; color: #e2e8f0; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #1e293b;
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: #f87171;
+      font-size: 0.875rem;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    /* Results */
+    .results-section { display: none; }
+
+    .results-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .results-title h3 { font-size: 1.2rem; margin-bottom: 4px; }
+    .results-title .sub { color: #64748b; font-size: 0.82rem; }
+    .export-btn {
+      padding: 9px 22px;
+      background: transparent;
+      border: 1px solid #005373;
+      color: #e2e8f0;
+      border-radius: 7px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .export-btn:hover { background: #005373; }
+
+    /* Assumptions panel */
+    .assumptions-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 22px 24px;
+      margin-bottom: 24px;
+    }
+    .assumptions-card h4 {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .assumptions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .a-field label {
+      display: block;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 5px;
+    }
+    .a-field input {
+      width: 100%;
+      padding: 7px 11px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+      font-family: inherit;
+      box-sizing: border-box;
+      text-align: right;
+    }
+    .a-field input:focus { outline: none; border-color: #005373; }
+
+    .recalc-btn {
+      margin-top: 16px;
+      padding: 8px 22px;
+      background: #005373;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .recalc-btn:hover { background: #003f57; }
+
+    /* DCF table */
+    .table-section { margin-bottom: 24px; }
+    .table-label {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-bottom: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .table-wrap {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      white-space: nowrap;
+    }
+    th {
+      padding: 10px 14px;
+      text-align: right;
+      color: #64748b;
+      font-weight: 500;
+      border-bottom: 1px solid #334155;
+      background: #0f172a;
+    }
+    th.row-label { text-align: left; min-width: 200px; }
+    th.hist { color: #94a3b8; }
+    th.proj { color: #38bdf8; }
+    td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #1e293b;
+      text-align: right;
+      color: #cbd5e1;
+    }
+    td.row-label {
+      text-align: left;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+    td.row-label.section-head {
+      color: #e2e8f0;
+      font-weight: 600;
+      background: #1e293b;
+      padding-top: 12px;
+    }
+    td.row-label.indent { padding-left: 28px; color: #64748b; }
+    td.proj-val { color: #e2e8f0; }
+    td.positive { color: #22c55e; }
+    td.negative { color: #f87171; }
+    td.total-row { font-weight: 600; border-top: 1px solid #334155; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Valuation box */
+    .val-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .val-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .val-card.highlight {
+      border-color: #005373;
+      background: #0f2233;
+    }
+    .val-card .val-label { font-size: 0.75rem; color: #64748b; margin-bottom: 6px; }
+    .val-card .val-amount { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; }
+    .val-card.highlight .val-amount { color: #38bdf8; }
+    .val-card .val-sub { font-size: 0.75rem; color: #64748b; margin-top: 3px; }
+
+    .notes-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: #64748b;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .notes-box strong { color: #94a3b8; }
+
+    .disclaimer {
+      margin-top: 8px;
+      padding: 12px 16px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 7px;
+      color: #64748b;
+      font-size: 0.78rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <span class="logo"><a href="../dashboard.html" style="color:inherit;text-decoration:none;">← PCC Analyst Tools</a></span>
+    <button class="logout-btn" id="logout-btn">Sign out</button>
+  </header>
+
+  <main>
+    <div class="tool-container">
+      <h2 style="margin-bottom:8px;">DCF Builder</h2>
+      <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:24px;">Drop an Excel file with historical financial data. Claude will extract the figures and build a 5-year DCF with editable assumptions.</p>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" />
+        <div id="drop-idle">
+          <div class="drop-icon">📂</div>
+          <p class="drop-title">Drop an Excel file here</p>
+          <p>Supports .xlsx, .xls, .csv — income statement, P&amp;L, or financial summary</p>
+          <p style="margin-top:10px;font-size:0.8rem;color:#475569">Or click to browse</p>
+        </div>
+        <div id="drop-loaded" style="display:none">
+          <div class="file-info">
+            <div class="file-icon">📊</div>
+            <div class="file-meta">
+              <div class="fname" id="file-name">filename.xlsx</div>
+              <div class="fsize" id="file-size">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="build-btn" id="build-btn" disabled>
+          <div class="spinner" id="spinner"></div>
+          <span id="btn-label">Loading…</span>
+        </button>
+        <button class="clear-btn" id="clear-btn" style="display:none">✕ Clear file</button>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+
+      <!-- Results -->
+      <div class="results-section" id="results-section">
+
+        <div class="results-top">
+          <div class="results-title">
+            <h3 id="r-company">DCF Model</h3>
+            <div class="sub" id="r-units">All figures in USD thousands unless noted</div>
+          </div>
+          <button class="export-btn" id="export-btn">⬇ Export to Excel</button>
+        </div>
+
+        <!-- Assumptions -->
+        <div class="assumptions-card">
+          <h4>⚙️ Model Assumptions <span style="color:#475569;font-weight:400;font-size:0.8rem">— edit any field and click Recalculate</span></h4>
+          <div class="assumptions-grid" id="assumptions-grid">
+            <!-- Populated by JS -->
+          </div>
+          <button class="recalc-btn" id="recalc-btn">↺ Recalculate</button>
+        </div>
+
+        <!-- Income Statement / FCF table -->
+        <div class="table-section">
+          <div class="table-label">Income Statement & Free Cash Flow Bridge</div>
+          <div class="table-wrap">
+            <table id="dcf-table">
+              <thead id="dcf-thead"></thead>
+              <tbody id="dcf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Valuation summary -->
+        <div class="table-label">Valuation Summary</div>
+        <div class="val-grid" id="val-grid"></div>
+
+        <!-- Notes -->
+        <div class="notes-box" id="notes-box" style="display:none"></div>
+
+        <div class="disclaimer">
+          <strong>Disclaimer:</strong> This DCF model is AI-generated from uploaded source data and is intended as a starting framework only. All assumptions, projections, and valuations require professional review and verification before use in any transaction or presentation. Past performance is not indicative of future results.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuF2XsNTUVnaTDb4d6ECvh9p-uUFYvOn8",
+      authDomain: "tools-site-e600e.firebaseapp.com",
+      projectId: "tools-site-e600e",
+      storageBucket: "tools-site-e600e.firebasestorage.app",
+      messagingSenderId: "915811706580",
+      appId: "1:915811706580:web:803e5753bab3abb6343d41",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { window.location.href = "../index.html"; return; }
+
+      try {
+        const snap = await getDoc(doc(db, "config", "keys"));
+        if (snap.exists() && snap.data().anthropic) {
+          window.__anthropicKey = snap.data().anthropic;
+          window.__keyReady = true;
+          if (window.__fileReady) enableBuildBtn();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      signOut(auth).then(() => { window.location.href = "../index.html"; });
+    });
+  </script>
+
+  <script>
+    // ─── State ───────────────────────────────────────────────────────────────
+    let parsedSheetText = "";
+    let dcfModel = null; // raw model from Claude
+    let assumptions = {}; // editable assumptions
+    let projYears = [];
+
+    // ─── File handling ────────────────────────────────────────────────────────
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+
+    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("drag-over");
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) loadFile(fileInput.files[0]);
+    });
+
+    document.getElementById("clear-btn").addEventListener("click", () => {
+      parsedSheetText = "";
+      fileInput.value = "";
+      window.__fileReady = false;
+      dropZone.classList.remove("has-file");
+      document.getElementById("drop-idle").style.display = "";
+      document.getElementById("drop-loaded").style.display = "none";
+      document.getElementById("clear-btn").style.display = "none";
+      document.getElementById("results-section").style.display = "none";
+      document.getElementById("build-btn").disabled = true;
+      document.getElementById("btn-label").textContent = "Build DCF";
+      hideError();
+    });
+
+    function loadFile(file) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (!["xlsx", "xls", "csv"].includes(ext)) {
+        showError("Please upload an Excel (.xlsx, .xls) or CSV file.");
+        return;
+      }
+
+      document.getElementById("file-name").textContent = file.name;
+      document.getElementById("file-size").textContent = formatBytes(file.size);
+      document.getElementById("drop-idle").style.display = "none";
+      document.getElementById("drop-loaded").style.display = "";
+      document.getElementById("clear-btn").style.display = "";
+      dropZone.classList.add("has-file");
+      hideError();
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target.result, { type: "binary", cellText: true, cellDates: true });
+          let text = "";
+          wb.SheetNames.slice(0, 8).forEach(name => {
+            const ws = wb.Sheets[name];
+            const csv = XLSX.utils.sheet_to_csv(ws, { blankrows: false });
+            if (csv.trim().length > 20) {
+              text += `\n=== Sheet: ${name} ===\n${csv}\n`;
+            }
+          });
+          parsedSheetText = text.slice(0, 30000); // cap at 30k chars
+          window.__fileReady = true;
+          if (window.__keyReady) enableBuildBtn();
+          else document.getElementById("btn-label").textContent = "Build DCF";
+        } catch (err) {
+          showError("Could not parse file: " + err.message);
+        }
+      };
+      reader.readAsBinaryString(file);
+    }
+
+    function enableBuildBtn() {
+      document.getElementById("build-btn").disabled = false;
+      document.getElementById("btn-label").textContent = "Build DCF";
+    }
+
+    function formatBytes(b) {
+      if (b < 1024) return b + " B";
+      if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+      return (b / 1048576).toFixed(1) + " MB";
+    }
+
+    // ─── Build DCF ────────────────────────────────────────────────────────────
+    document.getElementById("build-btn").addEventListener("click", async () => {
+      if (!parsedSheetText) { showError("Please upload a file first."); return; }
+
+      setLoading(true);
+      hideError();
+
+      const prompt = `You are a senior M&A investment banker building a DCF model. Below is raw data extracted from an Excel file. Your task is to identify historical financial data and build a 5-year DCF model.
+
+EXCEL DATA:
+${parsedSheetText}
+
+INSTRUCTIONS:
+1. Extract historical annual figures: Revenue, EBITDA, D&A (Depreciation & Amortization), CapEx, and Change in Net Working Capital. Use the most recent 3-5 years available.
+2. Identify the company name if present.
+3. Identify the reporting currency and units (thousands, millions, etc.).
+4. Build 5-year projections (label them E years, e.g. 2025E) based on historical trends. Be reasonable and conservative.
+5. Calculate Unlevered Free Cash Flow for each projected year: EBITDA - Taxes on EBIT - CapEx - Change in NWC (D&A is non-cash so it nets out: EBIT = EBITDA - D&A, Tax on EBIT, then add back D&A, subtract CapEx and NWC change).
+6. Suggest reasonable WACC (typically 9-13% for middle market), terminal growth rate (2-3%), and tax rate.
+7. If net debt is identifiable from the data, include it. Otherwise estimate as 0.
+
+Return ONLY valid JSON in exactly this format, no other text. All numeric values must be plain numbers (no $ signs, no commas):
+
+{
+  "company_name": "Company Name or Unknown",
+  "currency": "USD",
+  "units": "thousands",
+  "historical": [
+    {
+      "year": "2022",
+      "revenue": 45000,
+      "ebitda": 6750,
+      "da": 1200,
+      "capex": 900,
+      "nwc_change": 300
+    }
+  ],
+  "projections": [
+    {
+      "year": "2025E",
+      "revenue_growth": 0.07,
+      "ebitda_margin": 0.15,
+      "da": 1400,
+      "capex": 1000,
+      "nwc_change": 350
+    }
+  ],
+  "assumptions": {
+    "wacc": 0.11,
+    "terminal_growth_rate": 0.025,
+    "tax_rate": 0.26,
+    "net_debt": 5000
+  },
+  "notes": "Brief note about data quality, assumptions made, or anything the analyst should verify"
+}`;
+
+      try {
+        const key = window.__anthropicKey;
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": key,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 4096,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error?.message || `API error ${response.status}`);
+        }
+
+        const data = await response.json();
+        const text = data.content[0].text.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Could not parse model response.");
+        dcfModel = JSON.parse(jsonMatch[0]);
+
+        initAssumptions(dcfModel);
+        renderResults();
+      } catch (err) {
+        showError("Error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ─── Assumptions ─────────────────────────────────────────────────────────
+    function initAssumptions(model) {
+      const a = model.assumptions || {};
+      const projs = model.projections || [];
+
+      assumptions = {
+        wacc: a.wacc ?? 0.11,
+        terminal_growth_rate: a.terminal_growth_rate ?? 0.025,
+        tax_rate: a.tax_rate ?? 0.25,
+        net_debt: a.net_debt ?? 0,
+      };
+
+      // per-year revenue growth & EBITDA margin from projections
+      projs.forEach((p, i) => {
+        assumptions[`rev_growth_${i}`] = p.revenue_growth ?? 0.07;
+        assumptions[`ebitda_margin_${i}`] = p.ebitda_margin ?? 0.15;
+      });
+    }
+
+    function renderAssumptions(model) {
+      const grid = document.getElementById("assumptions-grid");
+      grid.innerHTML = "";
+      const projs = model.projections || [];
+
+      const globalFields = [
+        { key: "wacc",                 label: "WACC",                 fmt: "pct" },
+        { key: "terminal_growth_rate", label: "Terminal Growth Rate", fmt: "pct" },
+        { key: "tax_rate",             label: "Tax Rate",             fmt: "pct" },
+        { key: "net_debt",             label: "Net Debt",             fmt: "num" },
+      ];
+
+      globalFields.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "a-field";
+        const val = f.fmt === "pct" ? (assumptions[f.key] * 100).toFixed(1) : assumptions[f.key];
+        div.innerHTML = `
+          <label>${f.label}${f.fmt === "pct" ? " (%)" : ""}</label>
+          <input type="number" step="0.1" id="a-${f.key}" value="${val}" />
+        `;
+        grid.appendChild(div);
+      });
+
+      projs.forEach((p, i) => {
+        const yr = p.year;
+        [
+          { key: `rev_growth_${i}`, label: `${yr} Rev Growth (%)`, fmt: "pct" },
+          { key: `ebitda_margin_${i}`, label: `${yr} EBITDA Margin (%)`, fmt: "pct" },
+        ].forEach(f => {
+          const div = document.createElement("div");
+          div.className = "a-field";
+          const val = (assumptions[f.key] * 100).toFixed(1);
+          div.innerHTML = `<label>${f.label}</label><input type="number" step="0.1" id="a-${f.key}" value="${val}" />`;
+          grid.appendChild(div);
+        });
+      });
+    }
+
+    function readAssumptions() {
+      const projs = dcfModel.projections || [];
+      assumptions.wacc = parseFloat(document.getElementById("a-wacc").value) / 100 || 0.11;
+      assumptions.terminal_growth_rate = parseFloat(document.getElementById("a-terminal_growth_rate").value) / 100 || 0.025;
+      assumptions.tax_rate = parseFloat(document.getElementById("a-tax_rate").value) / 100 || 0.25;
+      assumptions.net_debt = parseFloat(document.getElementById("a-net_debt").value) || 0;
+      projs.forEach((_, i) => {
+        assumptions[`rev_growth_${i}`] = parseFloat(document.getElementById(`a-rev_growth_${i}`).value) / 100 || 0.07;
+        assumptions[`ebitda_margin_${i}`] = parseFloat(document.getElementById(`a-ebitda_margin_${i}`).value) / 100 || 0.15;
+      });
+    }
+
+    document.getElementById("recalc-btn").addEventListener("click", () => {
+      readAssumptions();
+      renderTable();
+      renderValuation();
+    });
+
+    // ─── Render Results ───────────────────────────────────────────────────────
+    function renderResults() {
+      const model = dcfModel;
+      document.getElementById("r-company").textContent = model.company_name !== "Unknown" ? model.company_name + " — DCF Model" : "DCF Model";
+      document.getElementById("r-units").textContent = `All figures in ${model.currency || "USD"} ${model.units || "thousands"} unless noted`;
+
+      renderAssumptions(model);
+      renderTable();
+      renderValuation();
+
+      if (model.notes) {
+        const nb = document.getElementById("notes-box");
+        nb.innerHTML = `<strong>Model Notes:</strong> ${model.notes}`;
+        nb.style.display = "";
+      }
+
+      document.getElementById("results-section").style.display = "block";
+      document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // ─── Compute projected rows ───────────────────────────────────────────────
+    function computeProjections() {
+      const hist = dcfModel.historical || [];
+      const projBase = dcfModel.projections || [];
+      const lastHist = hist[hist.length - 1] || {};
+      let prevRevenue = lastHist.revenue || 0;
+
+      return projBase.map((p, i) => {
+        const growth = assumptions[`rev_growth_${i}`] ?? p.revenue_growth ?? 0.07;
+        const margin = assumptions[`ebitda_margin_${i}`] ?? p.ebitda_margin ?? 0.15;
+        const revenue = prevRevenue * (1 + growth);
+        prevRevenue = revenue;
+        const ebitda = revenue * margin;
+        const da = p.da ?? (lastHist.da || 0) * (1 + 0.03 * (i + 1));
+        const ebit = ebitda - da;
+        const tax = ebit > 0 ? ebit * (assumptions.tax_rate ?? 0.25) : 0;
+        const nopat = ebit - tax;
+        const capex = p.capex ?? (lastHist.capex || 0);
+        const nwc_change = p.nwc_change ?? (lastHist.nwc_change || 0);
+        const fcf = nopat + da - capex - nwc_change;
+        return { year: p.year, revenue, growth, ebitda, margin, da, ebit, tax, nopat, capex, nwc_change, fcf };
+      });
+    }
+
+    // ─── Render table ─────────────────────────────────────────────────────────
+    function renderTable() {
+      const hist = dcfModel.historical || [];
+      const projs = computeProjections();
+      const thead = document.getElementById("dcf-thead");
+      const tbody = document.getElementById("dcf-tbody");
+
+      // Header
+      const histCols = hist.map(h => `<th class="hist">${h.year}</th>`).join("");
+      const projCols = projs.map(p => `<th class="proj">${p.year}</th>`).join("");
+      thead.innerHTML = `<tr><th class="row-label">($000s)</th>${histCols}${projCols}</tr>`;
+
+      // Rows
+      const rows = [
+        { label: "Revenue",            hist: h => h.revenue,    proj: p => p.revenue,    cls: "section-head" },
+        { label: "  Growth %",         hist: null,              proj: p => fmtPct(p.growth), cls: "indent", noFmt: true },
+        { label: "EBITDA",             hist: h => h.ebitda,     proj: p => p.ebitda     },
+        { label: "  EBITDA Margin",    hist: h => fmtPct(h.ebitda / h.revenue), proj: p => fmtPct(p.margin), cls: "indent", noFmt: true },
+        { label: "D&A",                hist: h => h.da,         proj: p => p.da,         sub: true },
+        { label: "EBIT",               hist: h => h.ebitda - h.da, proj: p => p.ebit,   cls: "total-row" },
+        { label: "  Taxes on EBIT",    hist: null,              proj: p => -p.tax,       cls: "indent", sub: true },
+        { label: "NOPAT",              hist: null,              proj: p => p.nopat       },
+        { label: "  + D&A",            hist: null,              proj: p => p.da,         cls: "indent" },
+        { label: "  − CapEx",          hist: h => -h.capex,     proj: p => -p.capex,     cls: "indent", sub: true },
+        { label: "  − ΔWorking Capital", hist: h => -h.nwc_change, proj: p => -p.nwc_change, cls: "indent", sub: true },
+        { label: "Unlevered FCF",      hist: null,              proj: p => p.fcf,        cls: "total-row section-head" },
+      ];
+
+      tbody.innerHTML = rows.map(row => {
+        const hCells = hist.map(h => {
+          if (!row.hist) return `<td>—</td>`;
+          const v = row.hist(h);
+          if (row.noFmt) return `<td class="hist">${v}</td>`;
+          return `<td class="hist">${fmtNum(v)}</td>`;
+        }).join("");
+
+        const pCells = projs.map(p => {
+          if (!row.proj) return `<td>—</td>`;
+          const v = row.proj(p);
+          if (row.noFmt) return `<td class="proj-val">${v}</td>`;
+          return `<td class="proj-val ${typeof v === 'number' && v < 0 ? 'negative' : ''}">${fmtNum(v)}</td>`;
+        }).join("");
+
+        let labelCls = "row-label";
+        if (row.cls) labelCls += " " + row.cls;
+        return `<tr><td class="${labelCls}">${row.label}</td>${hCells}${pCells}</tr>`;
+      }).join("");
+    }
+
+    // ─── Render valuation ────────────────────────────────────────────────────
+    function renderValuation() {
+      const projs = computeProjections();
+      const wacc = assumptions.wacc;
+      const tgr = assumptions.terminal_growth_rate;
+      const netDebt = assumptions.net_debt;
+
+      // PV of each FCF
+      let pvFCFs = 0;
+      const pvDetails = projs.map((p, i) => {
+        const pv = p.fcf / Math.pow(1 + wacc, i + 1);
+        pvFCFs += pv;
+        return pv;
+      });
+
+      // Terminal value (Gordon Growth)
+      const lastFCF = projs[projs.length - 1]?.fcf || 0;
+      const tv = lastFCF * (1 + tgr) / (wacc - tgr);
+      const pvTV = tv / Math.pow(1 + wacc, projs.length);
+
+      const ev = pvFCFs + pvTV;
+      const equity = ev - netDebt;
+      const lastProj = projs[projs.length - 1];
+      const exitEV_EBITDA = lastProj ? (tv / lastProj.ebitda).toFixed(1) + "x" : "—";
+
+      const valGrid = document.getElementById("val-grid");
+      valGrid.innerHTML = [
+        { label: "PV of Projected FCFs",   val: fmtNum(pvFCFs),         sub: `Over ${projs.length} years` },
+        { label: "Terminal Value",           val: fmtNum(tv),             sub: `Exit EV/EBITDA: ${exitEV_EBITDA}` },
+        { label: "PV of Terminal Value",     val: fmtNum(pvTV),           sub: `${fmtPct(pvTV / ev)} of total EV` },
+        { label: "Enterprise Value",         val: fmtNum(ev),             sub: "PV FCFs + PV Terminal Value", hi: true },
+        { label: "Net Debt",                 val: fmtNum(netDebt),        sub: "From assumptions" },
+        { label: "Implied Equity Value",     val: fmtNum(equity),         sub: "EV − Net Debt", hi: true },
+      ].map(c => `
+        <div class="val-card ${c.hi ? 'highlight' : ''}">
+          <div class="val-label">${c.label}</div>
+          <div class="val-amount">${c.val}</div>
+          <div class="val-sub">${c.sub}</div>
+        </div>
+      `).join("");
+    }
+
+    // ─── Export to Excel ─────────────────────────────────────────────────────
+    document.getElementById("export-btn").addEventListener("click", exportToExcel);
+
+    function exportToExcel() {
+      if (!dcfModel) return;
+
+      readAssumptions();
+      const hist = dcfModel.historical || [];
+      const projs = computeProjections();
+      const wacc = assumptions.wacc;
+      const tgr = assumptions.terminal_growth_rate;
+      const netDebt = assumptions.net_debt;
+
+      let pvFCFs = 0;
+      projs.forEach((p, i) => { pvFCFs += p.fcf / Math.pow(1 + wacc, i + 1); });
+      const lastFCF = projs[projs.length - 1]?.fcf || 0;
+      const tv = lastFCF * (1 + tgr) / (wacc - tgr);
+      const pvTV = tv / Math.pow(1 + wacc, projs.length);
+      const ev = pvFCFs + pvTV;
+      const equity = ev - netDebt;
+
+      const headers = ["Metric", ...hist.map(h => h.year), ...projs.map(p => p.year)];
+      const rows = [
+        headers,
+        ["Revenue", ...hist.map(h => h.revenue), ...projs.map(p => p.revenue)],
+        ["  Revenue Growth %", ...hist.map(_ => ""), ...projs.map(p => p.growth)],
+        ["EBITDA", ...hist.map(h => h.ebitda), ...projs.map(p => p.ebitda)],
+        ["  EBITDA Margin %", ...hist.map(h => h.ebitda / h.revenue), ...projs.map(p => p.margin)],
+        ["D&A", ...hist.map(h => h.da), ...projs.map(p => p.da)],
+        ["EBIT", ...hist.map(h => h.ebitda - h.da), ...projs.map(p => p.ebit)],
+        ["  Taxes on EBIT", ...hist.map(_ => ""), ...projs.map(p => -p.tax)],
+        ["NOPAT", ...hist.map(_ => ""), ...projs.map(p => p.nopat)],
+        ["  + D&A", ...hist.map(_ => ""), ...projs.map(p => p.da)],
+        ["  − CapEx", ...hist.map(h => -h.capex), ...projs.map(p => -p.capex)],
+        ["  − ΔWorking Capital", ...hist.map(h => -h.nwc_change), ...projs.map(p => -p.nwc_change)],
+        ["Unlevered FCF", ...hist.map(_ => ""), ...projs.map(p => p.fcf)],
+        [],
+        ["VALUATION SUMMARY", ""],
+        ["WACC", wacc],
+        ["Terminal Growth Rate", tgr],
+        ["Tax Rate", assumptions.tax_rate],
+        ["Net Debt", netDebt],
+        ["PV of Projected FCFs", pvFCFs],
+        ["Terminal Value", tv],
+        ["PV of Terminal Value", pvTV],
+        ["Enterprise Value", ev],
+        ["Implied Equity Value", equity],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "DCF Model");
+
+      const name = (dcfModel.company_name || "DCF").replace(/[^a-z0-9]/gi, "_");
+      XLSX.writeFile(wb, `${name}_DCF.xlsx`);
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+    function fmtNum(v) {
+      if (v === null || v === undefined || v === "") return "—";
+      const n = parseFloat(v);
+      if (isNaN(n)) return v;
+      const abs = Math.abs(n);
+      let s;
+      if (abs >= 1000000) s = (n / 1000000).toFixed(1) + "M";
+      else if (abs >= 1000) s = (n / 1000).toFixed(0) + "K";
+      else s = n.toFixed(0);
+      return n < 0 ? `(${s.replace("-", "")})` : s;
+    }
+
+    function fmtPct(v) {
+      if (v === null || v === undefined) return "—";
+      const n = parseFloat(v);
+      if (isNaN(n)) return "—";
+      return (n * 100).toFixed(1) + "%";
+    }
+
+    function setLoading(on) {
+      document.getElementById("spinner").style.display = on ? "block" : "none";
+      document.getElementById("btn-label").textContent = on ? "Building DCF…" : "Build DCF";
+      document.getElementById("build-btn").disabled = on;
+    }
+
+    function showError(msg) {
+      const b = document.getElementById("error-box");
+      b.textContent = msg;
+      b.style.display = "block";
+    }
+
+    function hideError() {
+      document.getElementById("error-box").style.display = "none";
+    }
+  </script>
+</body>
+</html>
